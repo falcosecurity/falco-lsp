@@ -347,7 +347,12 @@ func (p *Parser) parseTupleElement() ast.Expression {
 	}
 
 	p.error(fmt.Sprintf("unexpected token in tuple: %s", tok.Value))
-	return p.errorExpr("unexpected token in tuple")
+	// Consume the token so that parseTuple always makes progress.
+	p.advance()
+	return &ast.ErrorExpr{
+		Range:   tok.Range,
+		Message: "unexpected token in tuple",
+	}
 }
 
 // parsePrimary parses a primary expression.
