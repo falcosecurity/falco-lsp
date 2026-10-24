@@ -18,6 +18,7 @@ package condition
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -380,4 +381,33 @@ func TestParseMacroReferenceWithComparison(t *testing.T) {
 	macro, ok := binary.Left.(*ast.MacroRef)
 	require.True(t, ok, "expected MacroRef on left, got %T", binary.Left)
 	assert.Equal(t, "is_shell", macro.Name)
+}
+
+func TestParseUnexpectedTupleTokenTerminates(t *testing.T) {
+	cases := []string{
+		"proc.name in (bash, =, sh)",
+		"proc.name in (bash, {, sh)",
+		"proc.name in (bash, (, sh)",
+		"fd.name pmatch (/etc, =, /tmp)",
+		"proc.name in (<)",
+	}
+
+	results := make([]*ParseResult, len(cases))
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for i, src := range cases {
+			results[i] = Parse(src)
+		}
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(2 * time.Second):
+		t.Fatal("Parse did not terminate on an unexpected token inside a tuple")
+	}
+
+	for i, src := range cases {
+		assert.NotEmpty(t, results[i].Errors, "expected a parse error for %q", src)
+	}
 }

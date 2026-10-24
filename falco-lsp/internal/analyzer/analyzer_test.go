@@ -18,6 +18,7 @@ package analyzer
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -576,5 +577,37 @@ func TestHasImplicitArgument(t *testing.T) {
 			result := a.hasImplicitArgument(tt.fieldUsage, tt.registeredName)
 			assert.Equal(t, tt.expected, result)
 		})
+	}
+}
+
+func TestAnalyzeConditionWithUnexpectedTupleToken(t *testing.T) {
+	yaml := `
+- rule: Stray Operator In List
+  desc: Condition carrying a stray operator inside a list
+  condition: proc.name in (bash, =, sh)
+  output: "stray operator"
+  priority: WARNING
+`
+	result, err := parser.Parse(yaml, "test.yaml")
+	require.NoError(t, err)
+
+	a := NewAnalyzer()
+
+	done := make(chan *AnalysisResult, 1)
+	go func() {
+		done <- a.Analyze(result.Document, "test.yaml")
+	}()
+
+	select {
+	case analysisResult := <-done:
+		errors := 0
+		for _, d := range analysisResult.Diagnostics {
+			if d.Severity == SeverityError {
+				errors++
+			}
+		}
+		assert.Positive(t, errors, "expected a parse error diagnostic")
+	case <-time.After(2 * time.Second):
+		t.Fatal("Analyze did not terminate on a condition with an unexpected token inside a tuple")
 	}
 }
