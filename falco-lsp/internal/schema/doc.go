@@ -24,7 +24,7 @@
 //   - Property names (condition, output, priority, etc.)
 //   - Block types (rule, macro, list, exception)
 //   - Operators (comparison, logical, unary)
-//   - Tags (MITER, categories)
+//   - Tags (MITRE, categories)
 //   - Diagnostic codes (undefined-macro, wrong-source, etc.)
 //   - Event types (syscalls)
 //   - Identifier character classification
